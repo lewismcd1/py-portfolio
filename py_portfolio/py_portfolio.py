@@ -1,19 +1,19 @@
 import reflex as rx
 import re
 from reflex.style import set_color_mode, color_mode
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import smtplib
+import os
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
 
-SENDGRID_API_KEY="api_key"
+load_dotenv()
 
 class State(rx.State):
-    # Form fields
     name: str = ""
     email: str = ""
     message: str = ""
-    status: str = ""  # Success or error messages
-
-    # Theme state
+    status: str = ""
     is_dark_mode: bool = True
 
     def toggle_theme(self):
@@ -21,38 +21,51 @@ class State(rx.State):
         self.is_dark_mode = not self.is_dark_mode
 
     def on_mount(self):
+        self.status = ""
         self.reset_form()
 
     def send_email(self):
-        """Send an email using SendGrid."""
+        """Send an email using Gmail SMTP."""
         try:
-            email_message = Mail(
-                from_email="your_verified_email@example.com",  # Replace with your verified email
-                to_emails="your_email@example.com",  # Replace with your receiving email
-                subject=f"New Contact Form Submission from {self.name}",
-                html_content=f"""
-                <strong>Contact Form Submission</strong><br>
-                <b>Name:</b> {self.name}<br>
-                <b>Email:</b> {self.email}<br>
-                <b>Message:</b> {self.message}
-                """,
-            )
-            sg = SendGridAPIClient(SENDGRID_API_KEY)
-            sg.send(email_message)
+            load_dotenv(override=True)
+            # Get credentials from environment variables
+            smtp_password = os.getenv("GMAIL_APP_PASSWORD")
+            sender_email = os.getenv("GMAIL_ADDRESS")
+            receiver_email = os.getenv("RECEIVER_EMAIL")
+
+            if not all([smtp_password, sender_email, receiver_email]):
+                self.status = "Missing server email configuration, could not submit your message."
+
+            # Create the email message
+            msg = MIMEMultipart()
+            msg['From'] = sender_email
+            msg['To'] = receiver_email
+            msg['Subject'] = f"New Contact Form Submission from {self.name}"
+
+            body = f"""
+            <b>Name:</b> {self.name}<br>
+            <b>Email:</b> {self.email}<br>
+            <b>Message:</b> {self.message}
+            """
+            msg.attach(MIMEText(body, 'html'))
+
+            # Connect to Gmail SMTP server
+            with smtplib.SMTP('smtp.gmail.com', 587) as server:
+                server.starttls()
+                server.login(sender_email, smtp_password)
+                server.send_message(msg)
+            
             self.status = "Your message has been sent successfully!"
             self.reset_form()
         except Exception as e:
             self.status = f"Failed to send your message: {str(e)}"
             self.reset_form()
     
-    
     def reset_form(self):
         """Reset the form fields and status."""
         self.name = ""
         self.email = ""
         self.message = ""
-        self.status = ""
-
 
     def handle_submit(self):
         """Handle form submission with basic validation."""
@@ -232,7 +245,7 @@ class Main:
         )
 
         # Badges Section
-        titles = ["Cloud Security Engineer", "Security Engineer", "Systems Administrator"]
+        titles = ["Cloud Security Engineer", "Security Engineer", "Systems Admin"]
         self.badge_stack_max = rx.hstack(*[self.create_badge(title) for title in titles], spacing="3")
         self.badge_stack_min = rx.hstack(*[self.create_badge(title) for title in titles], spacing="1")
 
@@ -255,11 +268,8 @@ class Main:
     def create_skills_section(self) -> rx.Component:
         skills = [
             {"name": "Python", "icon": "🐍"},
-            {"name": "Bash", "icon": "💻"},
-            {"name": "PowerShell", "icon": "🔧"},
+            {"name": "PowerShell", "icon": "💻"},
             {"name": "AWS/Azure", "icon": "☁️"},
-            {"name": "Docker", "icon": "🐋"},
-            {"name": "Kubernetes", "icon": "⚙️"},
             {"name": "CloudFormation", "icon": "🛠️"},
         ]
         skill_items = [
@@ -343,9 +353,9 @@ class Main:
                 height="4rem",
             ),
             rx.text(
-                "I am a Cloud Security Engineer specializing in protecting cloud-based infrastructures. "
+                "I am a Cloud Security Engineer specialising in securing and automating infrastructure. "
                 "I work with various cloud platforms to design, implement, and manage security measures "
-                "that ensure the confidentiality, integrity, and availability of cloud environments.",
+                "that ensure the confidentiality, integrity, and availability of various environments.",
                 font_size="1rem",
                 dark={"color": "rgba(255, 255, 255, 0.7)"},
                 line_height="1.5",
@@ -399,14 +409,14 @@ class Main:
                 "image": "https://media.licdn.com/dms/image/D4D12AQG49qCkkRk6aw/article-cover_image-shrink_720_1280/0/1691813758023?e=2147483647&v=beta&t=P-f10sxwCtfIc0lWnyFTf9z_7Z14jtsT8K2XcXx1DxQ",  # Replace with actual image URL
             },
             {
-                "title": "Automated Compliance Checks",
-                "description": "Developed automated security compliance checks using AWS Config and Lambda.",
+                "title": "Automated Firewall Policy Checks",
+                "description": "Developed automated security compliance checks using ServiceNow API, Lambda and various other aws services.",
                 "image": "https://www.eqs.com/assets/2021/03/EQS-Blog_Compliance-Management.jpg",  # Replace with actual image URL
             },
             {
-                "title": "Secure Kubernetes Cluster",
-                "description": "Designed and deployed a secure Kubernetes cluster on Azure. This is more text to make it the same",
-                "image": "https://concisesoftware.com/wp-content/uploads/2020/01/Kubernetes-logo.png",  # Replace with actual image URL
+                "title": "Cyberark PAM Implementation",
+                "description": "Designed and deployed a secure CyberArk PAM environment. This was fully automated within AWS.",
+                "image": "https://mms.businesswire.com/media/20241113416461/en/1950794/23/CyberArk_Logo_November_2023.jpg",  # Replace with actual image URL
             },
         ]
 
@@ -414,7 +424,7 @@ class Main:
             rx.box(
                 rx.image(src=project["image"], alt=project["title"], width="100%", height="auto", style=hover_animation),
                 rx.box(
-                    rx.heading(project["title"], size="md"),
+                    rx.heading(project["title"], size="5"),
                     rx.text(project["description"]),
                     padding="1rem",
                 ),
@@ -440,19 +450,19 @@ class Main:
             rx.vstack(
                 rx.hstack(
                     rx.icon(tag="shield", box_size="24px", color="rgba(0, 255, 0, 0.8)"),
-                    rx.text("AWS Certified Security – Specialty"),
-                    spacing="2",
-                    align_items="center",
-                ),
-                rx.hstack(
-                    rx.icon(tag="award", box_size="24px", color="rgba(0, 255, 0, 0.8)"),
-                    rx.text("Certified Information Systems Security Professional (CISSP)"),
+                    rx.text("AWS Certified Security – Specialty (In Progress)"),
                     spacing="2",
                     align_items="center",
                 ),
                 rx.hstack(
                     rx.icon(tag="cloud", box_size="24px", color="rgba(0, 255, 0, 0.8)"),
-                    rx.text("Certified Cloud Security Professional (CCSP)"),
+                    rx.text("AWS SysOps Administrator Associate (To be renewed)"),
+                    spacing="2",
+                    align_items="center",
+                ),
+                rx.hstack(
+                    rx.icon(tag="award", box_size="24px", color="rgba(0, 255, 0, 0.8)"),
+                    rx.text("CCNA Routing & Switching (To be renewed)"),
                     spacing="2",
                     align_items="center",
                 ),
@@ -532,7 +542,7 @@ class Footer:
         )
         self.footer.children.append(
             rx.text(
-                "Copyright 2024 Lewis McDonald",
+                "Copyright 2025 Lewis McDonald",
                 font_size="10px",
                 font_weight="semibold",
             )
