@@ -450,7 +450,7 @@ class Main:
             rx.vstack(
                 rx.hstack(
                     rx.icon(tag="shield", box_size="24px", color="rgba(0, 255, 0, 0.8)"),
-                    rx.text("AWS Certified Security – Specialty (In Progress)"),
+                    rx.text("AWS Certified Security – Specialty (valid until 2028)"),
                     spacing="2",
                     align_items="center",
                 ),
