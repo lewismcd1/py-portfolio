@@ -14,7 +14,7 @@ A modern, single-page portfolio website built with Python using the Reflex frame
 - CSS3
 
 ## Live Demo
-[View the live site](lewismcdonald.site) <!-- Replace with your actual demo link -->
+[View the live site](https://lewismcdonald.site) <!-- Replace with your actual demo link -->
 
 ## Contact
 For questions or feedback, use the contact form on the website.
